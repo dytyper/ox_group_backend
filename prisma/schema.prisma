@@ -1,0 +1,62 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model User {
+  id           Int           @id @default(autoincrement())
+  email        String        @unique
+  createdAt    DateTime      @default(now())
+  companies    UserCompany[]
+  otpCodes     OtpCode[]
+  createdCompanies Company[] @relation("CompanyCreator")
+}
+
+model Company {
+  id          Int           @id @default(autoincrement())
+  subdomain   String        @unique
+  oxToken     String
+  createdAt   DateTime      @default(now())
+  createdById Int
+  createdBy   User          @relation("CompanyCreator", fields: [createdById], references: [id])
+  users       UserCompany[]
+}
+
+model UserCompany {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  companyId Int
+  role      Role
+
+  user    User    @relation(fields: [userId], references: [id])
+  company Company @relation(fields: [companyId], references: [id])
+
+  @@unique([userId, companyId])
+}
+
+model OtpCode {
+  id        Int      @id @default(autoincrement())
+  email     String
+  code      String
+  expiresAt DateTime
+  user      User?    @relation(fields: [userId], references: [id])
+  userId    Int?
+
+  @@index([email, code])
+  @@unique([email, code], name: "email_code")
+}
+
+enum Role {
+  admin
+  manager
+}
